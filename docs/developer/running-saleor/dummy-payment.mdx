@@ -3,15 +3,16 @@ title: Dummy payment
 ---
 
 ## Key concepts
+
 Dummy payment is Saleor testing gateway. It's enabled by default and it does not need
 any additional configuration to work. But if you want to customize it, you can do it
 through the dashboard (go to `settings/plugins` page and choose dummy from the plugins list).
 
 ## Testing for different responses
+
 Below is the list of test card numbers which can be used for checking different responses.
 To check response with use of Saleor storefront, just enter one of given card number,
-valid expiration date and random CVV value. In case of API you just need to enter
-card number as a token value in `CheckoutPaymentCreate` mutation with `mirumee.payments.dummy` set as `gateway`.
+valid expiration date and random CVV value.
 
 Any other card numbers with valid expiration date and random CVV value create a successful payment.
 
@@ -23,3 +24,101 @@ Any other card numbers with valid expiration date and random CVV value create a 
 | `4000000000000002` | Causes `Card declined` error.                                         |
 | `4111111111111111` | The Card is pre-authorized and causes `Card declined` during capture. |
 | `4111111111111112` | The Card is pre-authorized and successfully capture.                  |
+
+
+### Testing different responses with API
+
+In case of testing dummy payment responses with API you need to have checkout with shipping
+and billing address set. See [the checkout page](/developer/checkout.mdx#creating-a-checkout-session)
+to know how to create a checkout object.
+Then create checkout payment with use of `checkoutPaymentCreate` mutation,
+set card number as a `token` value and `mirumee.payments.dummy` as a `gateway`.
+To check gateway response use `CheckoutComplete` mutation.
+Lets see an example for token which causes `Card expired` error.
+
+Creating checkout payment ([here](/developer/checkout.mdx#selecting-a-payment-method)
+you can find more details about `checkoutPaymentCreate`):
+```graphql {2-9}
+mutation {
+    checkoutPaymentCreate(
+        input: {
+            amount: "15.00"
+            gateway: "mirumee.payments.dummy",
+            token: "4000000000000069",
+        }
+        checkoutId: "Q2hlY2tvdXQ6YjIyN2JiNWYtODA4Ny00ZjNlLThhMjYtMzE1OGI4NWE4N2Jh",
+    ) {
+        payment {
+            id
+            gateway
+            token
+        }
+        errors {
+            field
+            message
+        }
+    }
+}
+```
+
+We get newly created payment object:
+```json
+{
+  "data": {
+    "checkoutPaymentCreate": {
+      "payment": {
+        "id": "UGF5bWVudDoyMg==",
+        "gateway": "mirumee.payments.dummy",
+        "token": "4000000000000069",
+        "creditCard": null,
+        "__typename": "Payment"
+      },
+      "errors": [],
+      "__typename": "CheckoutPaymentCreate"
+    }
+  }
+}
+```
+
+Completing checkout and testing gateway response:
+```graphql {2-4}
+mutation {
+  checkoutComplete(
+      checkoutId: "Q2hlY2tvdXQ6YjIyN2JiNWYtODA4Ny00ZjNlLThhMjYtMzE1OGI4NWE4N2Jh"
+  ) {
+      checkoutErrors {
+        field
+        message
+        code
+        __typename
+      }
+      order {
+        id
+        token
+        __typename
+      }
+      __typename
+    }
+  }
+}
+```
+
+As a response, we get error corresponding to the given card number:
+```json {7-8}
+{
+  "data": {
+    "checkoutComplete": {
+      "checkoutErrors": [
+        {
+          "field": null,
+          "message": "Card expired",
+          "code": "PAYMENT_ERROR",
+          "__typename": "CheckoutError"
+        }
+      ],
+      "order": null,
+      "__typename": "CheckoutComplete"
+    }
+  }
+}
+```
