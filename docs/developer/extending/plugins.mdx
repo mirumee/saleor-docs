@@ -2,6 +2,8 @@
 title: Plugins
 ---
 
+import Chart from "@site/components/Chart";
+
 ## Introduction
 
 Plugins offer a mechanism to extend Saleor's Python core with new functionality. They are loaded by the core process and use predefined callbacks to execute custom code in response to certain events.
@@ -193,3 +195,134 @@ Plugin as a response needs to return the object of type inherited from `django.h
 ## Customizing the plugins manager
 
 The `PluginsManager` class is located in the `saleor.plugins.manager` module. It is a class responsible for handling all declared plugins and serving a response from them. Unless further customized this class is used to interface with the plugins. Should you need to use a custom sub-class (or an entirely new implementation), you can tell Saleor to use it by setting `settings.PLUGIN_MANAGER` to the Python path of your custom implementation.
+
+
+## Build-in plugins
+
+By default Saleor lands with these build-in plugins:
+
+- *saleor.plugins.avatax.plugin.AvataxPlugin*
+- *saleor.plugins.vatlayer.plugin.VatlayerPlugin*
+- *saleor.plugins.webhook.plugin.WebhookPlugin*
+- *saleor.payment.gateways.dummy.plugin.DummyGatewayPlugin*
+- *saleor.payment.gateways.dummy_credit_card.plugin.DummyCreditCardGatewayPlugin*
+- *saleor.payment.gateways.stripe.plugin.StripeGatewayPlugin*
+- *saleor.payment.gateways.braintree.plugin.BraintreeGatewayPlugin*
+- *saleor.payment.gateways.razorpay.plugin.RazorpayGatewayPlugin*
+- *saleor.payment.gateways.adyen.plugin.AdyenGatewayPlugin*
+- *saleor.plugins.invoicing.plugin.InvoicingPlugin*
+- *saleor.plugins.openid_connect.plugin.OpenIDConnectPlugin*
+
+
+### OpenIDConnectPlugin
+The below charts explain the workflow for actions defined by OpenIDConnectPlugin 
+
+#### External authentication
+<Chart
+  definition={`
+  sequenceDiagram
+    Web ->>+ Saleor: Mutation externalAuthentication with<br> redirect as input (http://localhost:3000/)
+    Saleor ->>+ OpenIDConnectPlugin: call external_authentication
+    OpenIDConnectPlugin -->>- Saleor: return redirect url to <br>Oauth provider
+    Saleor -->>- Web: Response from plugin
+    Web ->>+ OAuthProvider: Redirect to authorizantion page
+    OAuthProvider -->>- OpenIDConnectPlugin: GET<br> /plugins/<br>mirumee.authentication.openidconnect/<br>callback?state=redirectUrl/&code=YYY
+    OpenIDConnectPlugin ->>+ OAuthProvider: fetch tokens
+    OAuthProvider -->>- OpenIDConnectPlugin: tokens
+    OpenIDConnectPlugin ->> OpenIDConnectPlugin: validate tokens
+    OpenIDConnectPlugin ->> OpenIDConnectPlugin: create internal tokens with granted permissions
+    OpenIDConnectPlugin -->> Web: set cookie refreshToken with <br>refresh token and redirect to<br> http://localhost:3000/?token=ZZZ&refreshToken=WWW&csrfToken=EEE
+`}
+/>
+
+#### External refresh
+<Chart
+  definition={`
+  sequenceDiagram
+    Web ->>+ Saleor: mutatuion ExternalRefresh with<br> refreshToken and csrf token as an input*
+    Saleor ->>+ OpenIDConnectPlugin: call <br>PluginManager.external_refresh
+    OpenIDConnectPlugin ->>OpenIDConnectPlugin: validate csrf and <br>refresh token structure
+    OpenIDConnectPlugin ->>+ OAuthProvider: refresh tokens
+    OAuthProvider -->>- OpenIDConnectPlugin: new tokens
+    OpenIDConnectPlugin ->> OpenIDConnectPlugin: create new internal tokens
+    OpenIDConnectPlugin -->>- Saleor: new tokens
+    Saleor ->>- Web: return access_token<br> and refresh_token
+`}
+/>
+
+> \* refresh token can be also passed as a cookie - refreshToken
+
+#### External verify
+<Chart
+  definition={`
+  sequenceDiagram
+    Web ->>+ Saleor: mutatuion ExternalVerify with<br> token as an input
+    Saleor ->>+ OpenIDConnectPlugin: call <br>PluginManager.external_verify
+    OpenIDConnectPlugin ->>OpenIDConnectPlugin: decode token
+    OpenIDConnectPlugin -->>- Saleor: return assigned user<br> and payload data
+    Saleor ->>- Web: return token data
+`}
+/>
+
+#### External logout
+<Chart
+  definition={`
+  sequenceDiagram
+    Web ->>+ Saleor: mutatuion ExternalLogout with<br> data to attach as an input
+    Saleor ->>+ OpenIDConnectPlugin: call <br>PluginManager.external_logout
+    OpenIDConnectPlugin ->>OpenIDConnectPlugin: prepare logout url:<br> logoutUrl + input data as GET params
+    OpenIDConnectPlugin -->>- Saleor: return logoutData
+    Saleor ->>- Web: return logoutData
+`}
+/>
+
+#### Authenticate user
+<Chart
+  definition={`
+  sequenceDiagram
+    Web ->>+ Saleor: Request to protected resources with token
+    Saleor ->>+ OpenIDConnectPlugin: Call in middleware <br>Plugin.authenticate_user
+    OpenIDConnectPlugin ->> OpenIDConnectPlugin: Decode and validate token
+    OpenIDConnectPlugin ->> OpenIDConnectPlugin: get user
+    OpenIDConnectPlugin ->> OpenIDConnectPlugin: assign permissions <br>from token
+    OpenIDConnectPlugin ->>- Saleor: User authenticated
+    Saleor ->>- Web: requested resources
+`}
+/>
+
+#### OAuth permissions
+Saleor can use OAuth permissions assigned to a user. It maps internal permissions to OAuth scopes and attaches 
+it to the authorization request.
+
+```python
+def _get_oauth_session(self):
+    scope = "openid profile email "
+    scope += " ".join([f"saleor:{perm}" for perm in get_permissions_codename()])
+```
+It generates similar requests as below:
+```url
+https://saleor.eu.auth0.com/authorize?response_type=code&client_id=...&redirect_uri=..
+&scope=openid+profile+email+saleor:manage_users+saleor:manage_staff+saleor:manage_apps
++saleor:manage_apps+saleor:manage_discounts+saleor:manage_plugins
++saleor:manage_gift_card+saleor:manage_menus+saleor:manage_orders+saleor:manage_pages
++saleor:manage_products+saleor:manage_shipping+saleor:manage_settings
++saleor:manage_translations+saleor:manage_checkouts+offline_access&state=...
+```
+
+
+If the user has granted given permission on the OAuth side, Saleor will append the granted 
+permission to the authentication token which means that the user will have access to the 
+given resources.
+```python
+def get_saleor_permissions_from_scope(scope: str) -> List[str]:
+    if not scope:
+        return []
+    scope_list = scope.lower().strip().split()
+    saleor_permissions_str = [s for s in scope_list if s.startswith("saleor:")]
+    permission_codenames = list(
+        map(lambda perm: perm.replace("saleor:", ""), saleor_permissions_str)
+    )
+    permissions = get_permissions_from_codenames(permission_codenames)
+    permission_names = get_permission_names(permissions)
+    return list(permission_names)
+```
