@@ -90,7 +90,21 @@
         "items": [
           "developer/extending",
           "developer/extending/apps",
-          "developer/extending/plugins",
+          {
+            "type": "category",
+            "label": "Plugins",
+            "items": [
+              "developer/extending/plugins/introduction",
+              "developer/extending/plugins/writing_new_plugin",
+              {
+                "type": "category",
+                "label": "Built-in plugins",
+                "items": [
+                  "developer/extending/plugins/openid_connect"
+                ]
+              }
+            ]
+          },
           "developer/extending/payment-gateways",
           {
             "type": "category",
