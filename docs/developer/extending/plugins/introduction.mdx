@@ -1,0 +1,27 @@
+---
+title: Plugins
+sidebar_label: Introduction
+---
+
+
+## Introduction
+
+Plugins offer a mechanism to extend Saleor's Python core with new functionality. They are loaded by the core process and use predefined callbacks to execute custom code in response to certain events.
+
+Saleor ships with some plugins included, you can find those in the `saleor/plugins/` and `saleor/payment/gateways/` directories of the core.
+
+## Built-in plugins
+
+By default Saleor installs with the following plugins:
+
+- *saleor.plugins.avatax.plugin.AvataxPlugin*
+- *saleor.plugins.vatlayer.plugin.VatlayerPlugin*
+- *saleor.plugins.webhook.plugin.WebhookPlugin*
+- *saleor.plugins.invoicing.plugin.InvoicingPlugin*
+- *saleor.plugins.openid_connect.plugin.OpenIDConnectPlugin*
+- *saleor.payment.gateways.dummy.plugin.DummyGatewayPlugin*
+- *saleor.payment.gateways.dummy_credit_card.plugin.DummyCreditCardGatewayPlugin*
+- *saleor.payment.gateways.stripe.plugin.StripeGatewayPlugin*
+- *saleor.payment.gateways.braintree.plugin.BraintreeGatewayPlugin*
+- *saleor.payment.gateways.razorpay.plugin.RazorpayGatewayPlugin*
+- *saleor.payment.gateways.adyen.plugin.AdyenGatewayPlugin*

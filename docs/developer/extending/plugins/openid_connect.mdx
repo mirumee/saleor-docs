@@ -1,0 +1,109 @@
+---
+title: OpenIDConnectPlugin
+---
+
+import Chart from "@site/components/Chart";
+
+## Flow charts
+The below charts explain the workflow for actions defined by OpenIDConnectPlugin 
+
+### External authentication
+<Chart
+  definition={`
+  sequenceDiagram
+    Web ->>+ Saleor: ExternalAuthentication mutation with<br> redirect as input (http://localhost:3000/)
+    Saleor ->>+ OpenIDConnectPlugin: call external_authentication
+    OpenIDConnectPlugin -->>- Saleor: return redirect URL to <br>Oauth provider
+    Saleor -->>- Web: Response from plugin
+    Web ->>+ OAuthProvider: Redirect to the authorizantion page
+    OAuthProvider -->>- OpenIDConnectPlugin: GET<br> /plugins/<br>mirumee.authentication.openidconnect/<br>callback?state=redirectUrl/&code=YYY
+    OpenIDConnectPlugin ->>+ OAuthProvider: fetch tokens
+    OAuthProvider -->>- OpenIDConnectPlugin: tokens
+    OpenIDConnectPlugin ->> OpenIDConnectPlugin: validate tokens
+    OpenIDConnectPlugin ->> OpenIDConnectPlugin: create internal tokens with granted permissions
+    OpenIDConnectPlugin -->> Web: set cookie refreshToken with <br>refresh token and redirect to<br> http://localhost:3000/?token=ZZZ&refreshToken=WWW&csrfToken=EEE
+`}
+/>
+
+### External refresh
+<Chart
+  definition={`
+  sequenceDiagram
+    Web ->>+ Saleor: ExternalRefresh mutation with<br> refreshToken and CSRF token as input ¹
+    Saleor ->>+ OpenIDConnectPlugin: call <br>PluginManager.external_refresh
+    OpenIDConnectPlugin ->> OpenIDConnectPlugin: validate CSRF and <br>refresh token structure
+    OpenIDConnectPlugin ->>+ OAuthProvider: refresh tokens
+    OAuthProvider -->>- OpenIDConnectPlugin: new tokens
+    OpenIDConnectPlugin ->> OpenIDConnectPlugin: create new internal tokens
+    OpenIDConnectPlugin -->>- Saleor: new tokens
+    Saleor ->>- Web: return access_token<br> and refresh_token
+`}
+/>
+
+> ¹ refresh token can be also passed as a cookie - refreshToken
+
+### External verify
+<Chart
+  definition={`
+  sequenceDiagram
+    Web ->>+ Saleor: ExternalVerify mutation with<br> token as input
+    Saleor ->>+ OpenIDConnectPlugin: call <br>PluginManager.external_verify
+    OpenIDConnectPlugin ->> OpenIDConnectPlugin: decode token
+    OpenIDConnectPlugin -->>- Saleor: return assigned user<br> and payload data
+    Saleor ->>- Web: return token data
+`}
+/>
+
+### External logout
+<Chart
+  definition={`
+  sequenceDiagram
+    Web ->>+ Saleor: ExternalLogout mutation with<br> data to attach as input
+    Saleor ->>+ OpenIDConnectPlugin: call <br>PluginManager.external_logout
+    OpenIDConnectPlugin ->>OpenIDConnectPlugin: prepare logout URL:<br> logoutUrl + input data as GET params
+    OpenIDConnectPlugin -->>- Saleor: return logoutData
+    Saleor ->>- Web: return logoutData
+`}
+/>
+
+### Authenticate user
+<Chart
+  definition={`
+  sequenceDiagram
+    Web ->>+ Saleor: request to protected resources with token
+    Saleor ->>+ OpenIDConnectPlugin: authentication backend calls <br>Plugin.authenticate_user
+    OpenIDConnectPlugin ->> OpenIDConnectPlugin: decode and validate token
+    OpenIDConnectPlugin ->> OpenIDConnectPlugin: get user
+    OpenIDConnectPlugin ->> OpenIDConnectPlugin: assign permissions <br>from token
+    OpenIDConnectPlugin ->>- Saleor: user authenticated
+    Saleor ->>- Web: requested resources
+`}
+/>
+
+## OAuth permissions
+Saleor can use OAuth permissions assigned to a user. It maps internal permissions to OAuth scopes and attaches 
+it to the authorization request.
+
+
+### OAuth permission scopes
+| OAuth scope name           | Saleor Name                 | Description                                                                                                                      |
+| -------------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| saleor:manage_staff        | MANAGE_STAFF                | Access to staff users data                                                                                                       |
+| saleor:manage_apps         | MANAGE_APPS                 | Manage apps                                                                                                                      |
+| saleor:manage_users        | MANAGE_USERS                | Access to customers data                                                                                                         |
+| saleor:manage_discounts    | MANAGE_DISCOUNTS            | Manage discounts                                                                                                                 |
+| saleor:manage_plugins      | MANAGE_PLUGINS              | Manage plugins                                                                                                                   |
+| saleor:manage_gift_card    | MANAGE_GIFT_CARD            | Manage gift cards                                                                                                                |
+| saleor:manage_menus        | MANAGE_MENUS                | Manage the structure of menus                                                                                                    |
+| saleor:manage_orders       | MANAGE_ORDERS               | Access to orders data                                                                                                            |
+| saleor:manage_pages        | MANAGE_PAGES                | Manage pages                                                                                                                     |
+| saleor:manage_product      | MANAGE_PRODUCTS             | Manage products                                                                                                                  |
+| saleor:manage_shipping     | MANAGE_SHIPPING             | Manage shipping                                                                                                                  |
+| saleor:manage_settings     | MANAGE_SETTINGS             | Manage shop settings                                                                                                             |
+| saleor:manage_translations | MANAGE_TRANSLATIONS         | Manage tranlsations                                                                                                              |
+| saleor:manage_checkouts    | MANAGE_CHECKOUTS            | Manage checkout                                                                                                                  |
+
+
+If the user has granted given permission on the OAuth side, Saleor will append the granted 
+permission to the authentication token which means that the user will have access to the 
+given resources.
