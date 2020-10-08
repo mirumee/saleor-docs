@@ -4,10 +4,57 @@ title: OpenIDConnectPlugin
 
 import Chart from "@site/components/Chart";
 
-## Flow charts
-The below charts explain the workflow for actions defined by OpenIDConnectPlugin 
+## Key Concepts
+
+OpenIDConnectPlugin allows you to integrate with your OAuth provider. 
+This will allow you to move the authentication process to an external provider.
+Saleor will require the scopes:
+ - openid
+ - profile
+ - email
+ - offline\_access - _optionally, when you enable refreshing the token_
+ - saleor:_permission_ - _optionally when you enable mapping OAuth permissions to Saleor_
+
+
+## Actions
+
+The plugin provides below actions. 
 
 ### External authentication
+#### Mutation
+The `externalAuthentication` mutation will generate an authorization URL.
+The mutation takes the following input fields:
+- `redirectUrl`: the URL where the user should be redirected after successful authentication
+
+The `token` will be added to the `redirectUrl` as a GET parameter. If refreshing the token is enabled, `refreshToken` and `csrfToken`
+will be also added as a GET parameters.
+
+```graphql
+mutation {
+  externalAuthentication(input:"{\"redirectUrl\": \"http://localhost:3000\"}"){
+    authenticationData
+    accountErrors{
+      field
+      message
+    }
+  }
+}
+```
+
+A successful response:
+
+```json
+{
+  "data": {
+    "externalAuthentication": {
+      "authenticationData": "{\"authorizationUrl\": \"https://saleor-test.eu.auth0.com/authorize?response_type=code&client_id=RUgv72Cvzd5xjlMtgOEQLJ8QF4eQ3e1U&redirect_uri=http%3A%2F%2Flocalhost%3A8000%2Fplugins%2Fmirumee.authentication.openidconnect%2Fcallback&scope=openid+profile+email+offline_access&state=eyJyZWRpcmVjdFVybCI6Imh0dHA6Ly9sb2NhbGhvc3Q6MzAwMCJ9%3A1kQQVm%3AXKUdkjMug8wDDTNEshGgE1iFNEstifj7JzI9r-10P7A\"}",
+      "accountErrors": []
+    }
+  }
+}
+```
+
+#### Workflow
 <Chart
   definition={`
   sequenceDiagram
@@ -26,6 +73,41 @@ The below charts explain the workflow for actions defined by OpenIDConnectPlugin
 />
 
 ### External refresh
+#### Mutation
+
+The `externalRefresh` mutation will generate a new access token when provided with a valid refresh token. 
+If the refresh token is not provided as an argument, the code will try to read it from a cookie set by the tokenCreate mutation. In that case, matching CSRF token is required.
+
+The mutation takes the following input fields:
+- `refreshToken`: the refresh token which should be used to refresh the access token
+- `csrfToken`: required when `refreshToken` is not provided as an input
+
+
+```graphql
+mutation{
+  externalRefresh(input:"{\"refreshToken\": \"ABCDE\"}"){
+    refreshedData
+    accountErrors{
+      field
+      message
+      code
+    }
+  }
+}
+```
+
+A successful response:
+```json
+{
+  "data": {
+    "externalRefresh": {
+      "refreshedData": "{\"token\": \"new-token\", \"refreshToken\": \"new-refresh-token\", \"csrfToken\": \"new-csrf-token\"}",
+      "accountErrors": []
+    }
+  }
+}
+```
+#### Workflow
 <Chart
   definition={`
   sequenceDiagram
@@ -43,6 +125,47 @@ The below charts explain the workflow for actions defined by OpenIDConnectPlugin
 > ¹ refresh token can be also passed as a cookie - refreshToken
 
 ### External verify
+#### Mutation
+To verify the token, use the following mutation.
+
+```graphql
+mutation{
+  externalVerify(input:"{\"token\": \"token-to-check\"}"){
+    isValid
+    verifyData
+    user{
+      email
+      userPermissions{
+        code
+        name
+      }
+    }
+    accountErrors{
+      field
+      message
+      code
+    }
+  }
+}
+```
+
+A successful response:
+```json
+{
+  "data": {
+    "externalVerify": {
+      "isValid": true,
+      "verifyData": "{\"iat\": 1602143144, \"token\": \"xgS4ZELKlUHQ\", \"email\": \"admin@example.com\", \"type\": \"access\", \"user_id\": \"VXNlcjoyNQ==\", \"is_staff\": false, \"exp\": 1602179144, \"oauth_access_key\": \"tM-LHXMbxP5IANhPUd24_y5jjv0SCSj2\", \"owner\": \"mirumee.authentication.openidconnect\"}",
+      "user": {
+        "email": "admin@example.com",
+        "userPermissions": []
+      },
+      "accountErrors": []
+    }
+  }
+}
+```
+#### Workflow
 <Chart
   definition={`
   sequenceDiagram
@@ -55,10 +178,39 @@ The below charts explain the workflow for actions defined by OpenIDConnectPlugin
 />
 
 ### External logout
+You can prepare the logout URL by calling `externalLogout` mutation. 
+Based on your OAuth provider you can pass all mandatory fields which will be added 
+as a GET parameter to the logout request. 
+
+#### Mutation
+```graphql
+mutation {
+  externalLogout(input:"{\"returnTo\": \"http://localhost:3000\"}"){
+    logoutData
+    accountErrors{
+      field
+      message
+      code
+    }
+  }
+}
+```
+A successful response:
+```json
+{
+  "data": {
+    "externalLogout": {
+      "logoutData": "{\"logoutUrl\": \"https://saleor-test.eu.auth0.com/v2/logout?returnTo=http%3A%2F%2Flocalhost%3A3000\"}",
+      "accountErrors": []
+    }
+  }
+}
+```
+#### Workflow
 <Chart
   definition={`
   sequenceDiagram
-    Web ->>+ Saleor: ExternalLogout mutation with<br> data to attach as input
+    Web ->>+ Saleor: ExternalLogout mutation with<br> data required to logout
     Saleor ->>+ OpenIDConnectPlugin: call <br>PluginManager.external_logout
     OpenIDConnectPlugin ->>OpenIDConnectPlugin: prepare logout URL:<br> logoutUrl + input data as GET params
     OpenIDConnectPlugin -->>- Saleor: return logoutData
@@ -66,7 +218,7 @@ The below charts explain the workflow for actions defined by OpenIDConnectPlugin
 `}
 />
 
-### Authenticate user
+## User authentication flow
 <Chart
   definition={`
   sequenceDiagram
