@@ -256,6 +256,7 @@ it to the authorization request.
 | saleor:manage_checkouts    | MANAGE_CHECKOUTS            | Manage checkout                                                                                                                  |
 
 
-If the user has granted given permission on the OAuth side, Saleor will append the granted 
-permission to the authentication token which means that the user will have access to the 
-given resources.
+If `Use OAuth scope permissions` is enabled, any permissions granted to a user on the 
+authentication provider side will be used as the effective permissions on the Saleor side. 
+Please see the documentation of your authentication server to see how to manage permissions 
+and how to configure role-based access control (RBAC).
