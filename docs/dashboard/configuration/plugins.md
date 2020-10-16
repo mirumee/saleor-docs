@@ -87,13 +87,13 @@ Go to Configuration -> Plugins -> OpenID Connect and fill in the fields:
 keys used to verify any JSON Web Token (JWT) issued by the authorization server.
 - **OAuth logout url:** The logout URL which Saleor will return for frontend's logout request.
 - **Audience:** The Oauth resource identifier. If provided, Saleor will define the audience for each authorization request.  Used to fetch user permissions from OAuth provider and map it to Saleor's permission.
-- **Use OAuth scope permissions:** Use OAuth scope permissions to grant a logged-in user access to protected resources. Your OAuth provider needs to have defined Saleor's permission scopes in format _saleor:<saleor-permission\>._
+- **Use OAuth scope permissions:** Use OAuth scope permissions to grant a logged-in user access to protected resources. Your OAuth provider needs to have defined Saleor's permission scopes in format _saleor:<saleor-permission\>.
 
 
 :::note
 After the user finishes the authentication process, the OAuth provider redirects the user to Saleor to exchange code for the token. Make sure that your OAuth provider has whitelisted Saleor's redirect URL.
 
-`http(s)://<your-saleor-backend>/plugins/mirumee.authentication.openidconnect/callback`
+`https://<your-saleor-backend>/plugins/mirumee.authentication.openidconnect/callback`
 :::
 
 
@@ -107,7 +107,7 @@ If `Use OAuth scope permissions` is enabled, Saleor will request his own permiss
 
 :::note
 
-Your OAuth provider needs to have an assigned audience with proper Saleor's permissions with prefix `saleor:`. 
+Your OAuth provider needs to have an assigned audience with proper Saleor's permissions with prefix `saleor:`.
 
 :::
 
