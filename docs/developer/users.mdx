@@ -568,7 +568,7 @@ mutation {
 }
 ```
 
-As a result, ff there are no errors, the user receives an email with a link to confirm deleting their account. The link includes the `token` query parameter that is required in the second mutation:
+As a result, if there are no errors, the user receives an email with a link to confirm deleting their account. The link includes the `token` query parameter that is required in the second mutation:
 
 ```
 http://localhost:3000/confirm-delete/?token=5ff-b5818345d8b64331b068

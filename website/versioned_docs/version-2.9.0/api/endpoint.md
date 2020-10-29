@@ -9,4 +9,4 @@ Our API is available under a `/graphql` endpoint. The endpoint remains constant 
 
 Requests must be sent using the HTTP `POST` method and `application/json` content type.
 
-To view and try out our API, visit the [Playground](https://pwa.demo.saleor.rocks/graphql/).
+To view and try out our API, visit the [Playground](https://demo.saleor.io/graphql/).

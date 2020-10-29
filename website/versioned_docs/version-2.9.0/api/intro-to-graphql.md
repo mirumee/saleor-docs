@@ -10,7 +10,7 @@ Using the Saleor GraphQL API allows you to query and modify all of your shop’s
 * Public (related to the customers of your shop) 
 * Private (related to the administration side)
 
-Click [here](https://pwa.demo.saleor.rocks/graphql/) to preview the API.
+Click [here](https://demo.saleor.io/graphql/) to preview the API.
 
 To learn more about GraphQL language and its concepts, see the official [GraphQL website](https://graphql.org/).
 

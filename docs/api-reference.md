@@ -43988,6 +43988,10 @@ An enumeration.
 <td></td>
 </tr>
 <tr>
+<td valign="top"><strong>MANAGE_PRODUCT_TYPES_AND_ATTRIBUTES</strong></td>
+<td></td>
+</tr>
+<tr>
 <td valign="top"><strong>MANAGE_SHIPPING</strong></td>
 <td></td>
 </tr>

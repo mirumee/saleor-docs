@@ -11,12 +11,13 @@
     "graphql-markdown": "^5.2.0"
   },
   "dependencies": {
-    "@docusaurus/core": "^2.0.0-alpha.63",
-    "@docusaurus/preset-classic": "^2.0.0-alpha.63",
-    "@docusaurus/types": "^2.0.0-alpha.63",
-    "graphiql": "^0.17.5",
-    "isomorphic-fetch": "^2.2.1",
-    "mermaid": "^8.5.0",
+    "@docusaurus/core": "^2.0.0-alpha.65",
+    "@docusaurus/preset-classic": "^2.0.0-alpha.65",
+    "@docusaurus/types": "^2.0.0-alpha.65",
+    "@types/mermaid": "^8.2.1",
+    "graphiql": "^1.0.5",
+    "isomorphic-fetch": "^3.0.0",
+    "mermaid": "^8.8.1",
     "react": "^16.13.1",
     "react-dom": "^16.13.1"
   }

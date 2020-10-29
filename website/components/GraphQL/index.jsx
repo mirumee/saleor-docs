@@ -5,7 +5,7 @@ import fetch from "isomorphic-fetch";
 import "./styles.css";
 
 const fetcher = async params => {
-  const data = await fetch("https://pwa.demo.saleor.rocks/graphql/", {
+  const data = await fetch("https://demo.saleor.io/graphql/", {
     method: "post",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(params)

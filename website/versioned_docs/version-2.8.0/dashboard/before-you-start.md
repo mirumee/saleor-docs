@@ -18,7 +18,7 @@ Getting an iteration of Saleor is simple. Before you commit to the platform, we 
 
 Try the traditional demo: https://demo.saleor.io
 
-Experience the PWA version of the store: https://pwa.saleor.io/
+Experience the PWA version of the store: https://demo.saleor.io/
 
 Once you know that Saleor is a great solution for you, the easiest way to get a full open source version is to fork Saleor from our GitHub page 
 

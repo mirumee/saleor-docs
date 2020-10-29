@@ -72,10 +72,13 @@ Here is an example query that looks for the first 3 products containing the term
 In `products` you can also sort the results using two `sortBy` arguments:
 
 - `field`: the field to use for sorting the results from several predefined choices:
+  - `DATE`: sort products by last update.
+  - `MINIMAL_PRICE`: sort products by minimal variant price.
   - `NAME`: sort products by name.
   - `PRICE`: sort products by base price.
-  - `MINIMAL_PRICE`: sort products by minimal variant price.
-  - `DATE`: sort products by last update.
+  - `PUBLICATION_DATE`: sort products by publication date.
+  - `PUBLISHED`: sort products by publication status.
+  - `TYPE`: sort products by product type.
 - `direction`: The direction for sorting items:
   - `ASC`: sort ascending.
   - `DESC`: sort descending.
