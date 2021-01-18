@@ -20,18 +20,17 @@ Saleor will require the scopes:
 
 The plugin provides below actions. 
 
-### External authentication
+### External authentication url
 #### Mutation
-The `externalAuthentication` mutation will generate an authorization URL.
+The `externalAuthenticationUrl` mutation will generate an authorization URL.
 The mutation takes the following input fields:
-- `redirectUrl`: the URL where the user should be redirected after successful authentication
-
-The `token` will be added to the `redirectUrl` as a GET parameter. If refreshing the token is enabled, `refreshToken` and `csrfToken`
-will be also added as a GET parameters.
+- `pluginId`: the ID of the authentication plugin
+- `input`
+    - `redirectUrl`: the URL where the user should be redirected after successful authentication
 
 ```graphql
-mutation {
-  externalAuthentication(input:"{\"redirectUrl\": \"http://localhost:3000\"}"){
+mutation{
+  externalAuthenticationUrl(pluginId:"mirumee.authentication.openidconnect", input:"{\"redirectUri\":\"http://127.0.0.1:3000/callback\"}"){
     authenticationData
     accountErrors{
       field
@@ -46,8 +45,8 @@ A successful response:
 ```json
 {
   "data": {
-    "externalAuthentication": {
-      "authenticationData": "{\"authorizationUrl\": \"https://saleor-test.eu.auth0.com/authorize?response_type=code&client_id=RUgv72Cvzd5xjlMtgOEQLJ8QF4eQ3e1U&redirect_uri=http%3A%2F%2Flocalhost%3A8000%2Fplugins%2Fmirumee.authentication.openidconnect%2Fcallback&scope=openid+profile+email+offline_access&state=eyJyZWRpcmVjdFVybCI6Imh0dHA6Ly9sb2NhbGhvc3Q6MzAwMCJ9%3A1kQQVm%3AXKUdkjMug8wDDTNEshGgE1iFNEstifj7JzI9r-10P7A\"}",
+    "externalAuthenticationUrl": {
+      "authenticationData": "{\"authorizationUrl\": \"https://saleor-test.eu.auth0.com/authorize?response_type=code&client_id=RUgv72Cvzd5xjlMtgOEQLJ8QF4eQ3e1U&redirect_uri=http%3A%2F%2F127.0.0.1%3A3000%2Fcallback&scope=openid+profile+email+offline_access&state=eyJyZWRpcmVjdFVyaSI6Imh0dHA6Ly8xMjcuMC4wLjE6MzAwMC9jYWxsYmFjayJ9%3A1l1W9H%3AFsxnhejCQKB4JdFL-t0BqNPrHtODh9T0mG2E3KzT-bQ\"}",
       "accountErrors": []
     }
   }
@@ -58,35 +57,99 @@ A successful response:
 <Chart
   definition={`
   sequenceDiagram
-    Web ->>+ Saleor: ExternalAuthentication mutation with<br> redirect as input (http://localhost:3000/)
-    Saleor ->>+ OpenIDConnectPlugin: call external_authentication
+    Web ->>+ Saleor: ExternalAuthenticationUrl mutation with<br> redirectUri as input (http://localhost:3000/)
+    Saleor ->>+ OpenIDConnectPlugin: call<br>external_authentication_url
     OpenIDConnectPlugin -->>- Saleor: return redirect URL to <br>Oauth provider
     Saleor -->>- Web: Response from plugin
     Web ->>+ OAuthProvider: Redirect to the authorizantion page
-    OAuthProvider -->>- OpenIDConnectPlugin: GET<br> /plugins/<br>mirumee.authentication.openidconnect/<br>callback?state=redirectUrl/&code=YYY
+    OAuthProvider -->>- Web: GET<br> <redirectUri>?state=XXX&code=YYY
+`}
+/>
+
+
+### External obtain access tokens
+
+#### Mutation
+The `externalObtainAccessTokens` mutation will generate requested access tokens.
+The mutation takes the following input fields:
+- `pluginId`: the ID of the authentication plugin
+- `input`
+    - `code`: the authorization code received from the OAuth provider
+    - `state`: the state value received from the OAuth provider
+
+
+```graphql
+mutation{
+  externalObtainAccessTokens(pluginId:"mirumee.authentication.openidconnect", input:"{\"code\": \"uLBlqQwnmKTIDLJ3\", \"state\": \"eyJyZWRpcmVjdFVyaSI6Imh0dHA6Ly8xMjcuMC4wLjE6MzAwMC9jYWxsYmFjayJ9:1l1lXU:93CE6SScisZNX4T93_7VM-JGlUDZa_EflH4RSUAtc-E\"}"){
+    token
+    refreshToken
+    csrfToken
+    user{
+      id
+      email
+    }
+    accountErrors{
+      field
+      code
+      message
+    }
+  }
+}
+```
+
+A successful response:
+```json
+{
+  "data": {
+    "externalObtainAccessTokens": {
+      "token": "eyJ0eXAiOiJKV1QiL....SzVVNO6oTVMCTbpgFhqo-yRzsq0Q5ZK2GVn3R_KTjmc",
+      "refreshToken": "eyJ0eXAiOiJKV1QiLCJ...bi5vcGVuaWRjb25uZWN0In0.o_ZDrQYOImCg1ne7pJKdKB-DNyuW6OKkjNwP05lyPNw",
+      "csrfToken": "qRLs15tbipqOfZuFs8kQYzpj927vfhBPqWj4jg0Uc9D1WPPpUbw2jEP1R7p7gVL4",
+      "user": {
+        "id": "VXNlcjoyNA==",
+        "email": "saleor.user@mirumee.com"
+      },
+      "accountErrors": []
+    }
+  }
+}
+```
+
+#### Workflow
+
+<Chart
+  definition={`
+  sequenceDiagram
+    Web ->>+ Saleor: ExternalObtainAccessTokens mutation<br>with recieved code and state as an input
+    Saleor ->>+ OpenIDConnectPlugin: call<br>external_obtain_access_tokens
     OpenIDConnectPlugin ->>+ OAuthProvider: fetch tokens
     OAuthProvider -->>- OpenIDConnectPlugin: tokens
     OpenIDConnectPlugin ->> OpenIDConnectPlugin: validate tokens
-    OpenIDConnectPlugin ->> OpenIDConnectPlugin: create internal tokens with granted permissions
-    OpenIDConnectPlugin -->> Web: set cookie refreshToken with <br>refresh token and redirect to<br> http://localhost:3000/?token=ZZZ&refreshToken=WWW&csrfToken=EEE
+    OpenIDConnectPlugin ->> OpenIDConnectPlugin: create internal<br>tokens with granted permissions
+    OpenIDConnectPlugin -->>- Saleor: return tokens
+    Saleor -->>- Web: set cookie refreshToken with <br>refresh token<br>return tokens in mutation response
 `}
 />
 
 ### External refresh
 #### Mutation
 
-The `externalRefresh` mutation will generate a new access token when provided with a valid refresh token. 
+The `externalRefresh` mutation will generate a new access tokens when provided with a valid refresh token. 
 If the refresh token is not provided as an argument, the code will try to read it from a cookie set by the tokenCreate mutation. In that case, matching CSRF token is required.
 
 The mutation takes the following input fields:
-- `refreshToken`: the refresh token which should be used to refresh the access token
-- `csrfToken`: required when `refreshToken` is not provided as an input
+- `pluginId`: the ID of the authentication plugin
+- `input`
+    - `refreshToken`: the refresh token which should be used to refresh the access tokens
+    - `csrfToken`: required when `refreshToken` is not provided as an input
 
 
 ```graphql
 mutation{
-  externalRefresh(input:"{\"refreshToken\": \"ABCDE\"}"){
-    refreshedData
+  externalRefresh(pluginId:"mirumee.authentication.openidconnect", input:"{\"refreshToken\": \"ABCDE\"}"){
+    token
+    refreshToken
+    csrfToken
     accountErrors{
       field
       message
@@ -101,12 +164,15 @@ A successful response:
 {
   "data": {
     "externalRefresh": {
-      "refreshedData": "{\"token\": \"new-token\", \"refreshToken\": \"new-refresh-token\", \"csrfToken\": \"new-csrf-token\"}",
+      "token": "eyJ0eXAiOiJKV1QiLCJhbGci....-pk-qCvbJ1M7tqSzP0",
+      "refreshToken": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIU...sBboyMFcWTIe92NcWlqEI9AYlJL6o",
+      "csrfToken": "Ejdvo8PTLG0M9YAGHCnBvyldmDrd6SjmhfQDWBIaCymZzW8eRUAL4sz4Cx91q0yR",
       "accountErrors": []
     }
   }
 }
 ```
+
 #### Workflow
 <Chart
   definition={`
@@ -128,22 +194,22 @@ A successful response:
 #### Mutation
 To verify the token, use the following mutation.
 
+The mutation takes the following input fields:
+- `pluginId`: the ID of the authentication plugin
+- `input`
+    - `refreshToken`: the refresh token which should be used to refresh the access token
+    - `csrfToken`: required when `refreshToken` is not provided as an input
+
 ```graphql
 mutation{
-  externalVerify(input:"{\"token\": \"token-to-check\"}"){
+  externalVerify(pluginId:"mirumee.authentication.openidconnect", input:"{\"token\": \"eyJ0eXAiOiJK...J1M7tqSzP0\"}"){
     isValid
     verifyData
     user{
-      email
       userPermissions{
         code
         name
       }
-    }
-    accountErrors{
-      field
-      message
-      code
     }
   }
 }
@@ -180,12 +246,16 @@ A successful response:
 ### External logout
 You can prepare the logout URL by calling `externalLogout` mutation. 
 Based on your OAuth provider you can pass all mandatory fields which will be added 
-as a GET parameter to the logout request. 
+as a GET parameter to the logout request.
+
+- `pluginId`: the ID of the authentication plugin
+- `input`
+    - `returnTo`: the URL where a user should be redirected
 
 #### Mutation
 ```graphql
 mutation {
-  externalLogout(input:"{\"returnTo\": \"http://localhost:3000\"}"){
+  externalLogout(pluginId:"mirumee.authentication.openidconnect", input:"{\"returnTo\": \"http://localhost:3000\"}"){
     logoutData
     accountErrors{
       field
@@ -238,23 +308,25 @@ it to the authorization request.
 
 
 ### OAuth permission scopes
-| OAuth scope name                                | Saleor Name                 | Description                                                                                                                      |
-| ----------------------------------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| saleor:manage_staff                             | MANAGE_STAFF                | Access to staff users data                                                                                                       |
-| saleor:manage_apps                              | MANAGE_APPS                 | Manage apps                                                                                                                      |
-| saleor:manage_users                             | MANAGE_USERS                | Access to customers data                                                                                                         |
-| saleor:manage_discounts                         | MANAGE_DISCOUNTS            | Manage discounts                                                                                                                 |
-| saleor:manage_plugins                           | MANAGE_PLUGINS              | Manage plugins                                                                                                                   |
-| saleor:manage_gift_card                         | MANAGE_GIFT_CARD            | Manage gift cards                                                                                                                |
-| saleor:manage_menus                             | MANAGE_MENUS                | Manage the structure of menus                                                                                                    |
-| saleor:manage_orders                            | MANAGE_ORDERS               | Access to orders data                                                                                                            |
-| saleor:manage_pages                             | MANAGE_PAGES                | Manage pages                                                                                                                     |
-| saleor:manage_product                           | MANAGE_PRODUCTS             | Manage products                                                                                                                  |
-| saleor:manage_product_types_and_attributes      | MANAGE_PRODUCT_TYPES_AND_ATTRIBUTES             | Manage products                                                                                                                  |
-| saleor:manage_shipping                          | MANAGE_SHIPPING             | Manage shipping                                                                                                                  |
-| saleor:manage_settings                          | MANAGE_SETTINGS             | Manage shop settings                                                                                                             |
-| saleor:manage_translations                      | MANAGE_TRANSLATIONS         | Manage tranlsations                                                                                                              |
-| saleor:manage_checkouts                         | MANAGE_CHECKOUTS            | Manage checkout                                                                                                                  |
+| OAuth scope name                                | Saleor Name                          | Description                                                                                                                      |
+| ----------------------------------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| saleor:manage_channels                          | MANAGE_CHANNELS                      | Manage Saleor's channels                                                                                                         |
+| saleor:manage_staff                             | MANAGE_STAFF                         | Access to staff users data                                                                                                       |
+| saleor:manage_apps                              | MANAGE_APPS                          | Manage apps                                                                                                                      |
+| saleor:manage_users                             | MANAGE_USERS                         | Access to customers data                                                                                                         |
+| saleor:manage_discounts                         | MANAGE_DISCOUNTS                     | Manage discounts                                                                                                                 |
+| saleor:manage_plugins                           | MANAGE_PLUGINS                       | Manage plugins                                                                                                                   |
+| saleor:manage_gift_card                         | MANAGE_GIFT_CARD                     | Manage gift cards                                                                                                                |
+| saleor:manage_menus                             | MANAGE_MENUS                         | Manage the structure of menus                                                                                                    |
+| saleor:manage_orders                            | MANAGE_ORDERS                        | Access to orders data                                                                                                            |
+| saleor:manage_pages                             | MANAGE_PAGES                         | Manage pages                                                                                                                     |
+| saleor:manage_product                           | MANAGE_PRODUCTS                      | Manage products                                                                                                                  |
+| saleor:manage_product_types_and_attributes      | MANAGE_PRODUCT_TYPES_AND_ATTRIBUTES  | Manage products and attributes                                                                                              |
+| saleor:manage_page_types_and_attributes         | MANAGE_PAGE_TYPES_AND_ATTRIBUTES     | Manage page types and attributes                                                                                              |
+| saleor:manage_shipping                          | MANAGE_SHIPPING                      | Manage shipping                                                                                                                  |
+| saleor:manage_settings                          | MANAGE_SETTINGS                      | Manage shop settings                                                                                                             |
+| saleor:manage_translations                      | MANAGE_TRANSLATIONS                  | Manage tranlsations                                                                                                              |
+| saleor:manage_checkouts                         | MANAGE_CHECKOUTS                     | Manage checkout                                                                                                                  |
 
 
 If _Use OAuth scope permissions_ is enabled, any permissions granted to a user on the 
