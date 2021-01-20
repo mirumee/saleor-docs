@@ -135,7 +135,7 @@ A successful response:
 #### Mutation
 
 The `externalRefresh` mutation will generate a new access tokens when provided with a valid refresh token. 
-If the refresh token is not provided as an argument, the code will try to read it from a cookie set by the tokenCreate mutation. In that case, matching CSRF token is required.
+If the refresh token is not provided as an argument, the code will try to read it from a cookie set by the `tokenCreate` mutation. In that case, matching CSRF token is required.
 
 The mutation takes the following input fields:
 - `pluginId`: the ID of the authentication plugin
