@@ -133,7 +133,7 @@ module.exports = {
       },
       {
         "type": "category",
-        "label": "Api Reference",
+        "label": "API reference",
         items: [
           ...require("../docs/developer/api-reference/sidebar-schema.js").schemaSidebar
         ]

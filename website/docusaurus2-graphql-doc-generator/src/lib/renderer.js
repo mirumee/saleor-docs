@@ -1,3 +1,4 @@
+const chalk = require("chalk");
 const fs = require("fs-extra");
 const path = require("path");
 const { pull } = require("lodash");
@@ -6,25 +7,24 @@ const { toSlug, startCase, hasProperty } = require("./utils");
 const { prettifyJavascript } = require("./prettier");
 
 const SIDEBAR = "sidebar-schema.js";
-const HOMEPAGE_ID = "api-introduction";
-const HOMEPAGE_FILE = HOMEPAGE_ID + ".mdx";
 
 module.exports = class Renderer {
-  constructor(printer, outputDir, baseURL) {
+  constructor(printer, outputDir, baseURL, homepageURL) {
     this.outputDir = outputDir;
     this.baseURL = baseURL;
+    this.homepageURL = homepageURL;
     this.p = printer;
     this.emptyOutputDir();
   }
 
   emptyOutputDir() {
-    fs.ensureDirSync(this.outputDir);
-    fs.readdirSync(this.outputDir)
-      .filter(f => !f.endsWith(HOMEPAGE_FILE))
-      .map(f => fs.remove(path + f))
+    fs.emptyDirSync(this.outputDir);
   }
 
   async renderRootTypes(name, type) {
+    console.info(
+      chalk.blue(`Generating pages for ${name}.`),
+    );
     let pages = [];
     if (type) {
       const slug = toSlug(name);
@@ -66,6 +66,9 @@ module.exports = class Renderer {
   }
 
   async renderSidebar(pages) {
+    console.info(
+      chalk.blue(`Generating sidebar.`),
+    );
     const filePath = path.join(this.outputDir, SIDEBAR);
     const content = prettifyJavascript(`module.exports = {
           schemaSidebar:
@@ -77,7 +80,7 @@ module.exports = class Renderer {
 
   generateSidebar(pages) {
     let graphqlSidebar = [
-      { type: "doc", id: path.join(this.baseURL, HOMEPAGE_ID) },
+      { type: "doc", id: this.homepageURL },
     ];
     pages.map((page) => {
       const category = graphqlSidebar.find(
@@ -98,17 +101,16 @@ module.exports = class Renderer {
   }
 
   async renderHomepage(homepageLocation) {
-    const homePage = path.basename(homepageLocation);
-    const destLocation = path.join(this.outputDir, homePage);
-    if (destLocation != homepageLocation){
-      fs.copySync(homepageLocation, destLocation);
-    }
+    console.info(
+      chalk.blue(`Updating API reference homepage file "${homepageLocation}".`),
+    );
     const data = fs
-      .readFileSync(destLocation, "utf8")
+      .readFileSync(homepageLocation, "utf8")
       .replace(
+        // will find comment for timestamp AND next line, and will replace generation time
         /\[comment\]: \# \(generated\-date\-time\)\n.*$/gm,
         "[comment]: # (generated-date-time)\n" + moment().format("MMMM DD, YYYY [at] h:mm:ss A"),
       );
-    await fs.outputFile(destLocation, data, "utf8");
+    await fs.outputFile(homepageLocation, data, "utf8");
   }
 };

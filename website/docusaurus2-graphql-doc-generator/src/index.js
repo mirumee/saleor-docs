@@ -11,6 +11,7 @@ const DEFAULT_OPTIONS = {
   homepage: path.join(__dirname, "../assets/", "generated.md"),
   diffMethod: "SCHEMA-DIFF",
   tmpDir: path.join(os.tmpdir(), "@edno/docusaurus2-graphql-doc-generator"),
+  homepageURL: "",
 };
 
 module.exports = function pluginGraphQLDocGenerator(context, opts) {
@@ -40,8 +41,13 @@ module.exports = function pluginGraphQLDocGenerator(context, opts) {
         )
         .option(
           "-h, --homepage <homepage>",
-          "File location for doc landing page",
+          "File location for api reference landing page",
           config.homepage,
+        )
+        .option(
+          "-u, --homepageURL <homepageURL>",
+          "URL for api reference landing page",
+          config.homepageURL,
         )
         .option("-f, --force", "Force document generation")
         .option("-d, --diff <diffMethod>", "Set diff method", config.diffMethod)
@@ -57,6 +63,7 @@ module.exports = function pluginGraphQLDocGenerator(context, opts) {
           const schema = options.schema;
           const rootPath = path.join(options.root, baseURL);
           const homepage = options.homepage;
+          const homepageURL = options.homepageURL;
           const diffMethod = options.force ? "FORCE" : options.diff;
           const tmpDir = options.tmp;
           await generateDocFromSchema(
@@ -67,6 +74,7 @@ module.exports = function pluginGraphQLDocGenerator(context, opts) {
             homepage,
             diffMethod,
             tmpDir,
+            homepageURL,
           );
         });
     },

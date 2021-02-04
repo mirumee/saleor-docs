@@ -1,6 +1,6 @@
 module.exports = {
   schemaSidebar: [
-    { type: "doc", id: "developer/api-reference/api-introduction" },
+    { type: "doc", id: "developer/api-reference" },
     {
       type: "category",
       label: "Queries",

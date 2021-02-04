@@ -25,7 +25,11 @@ module.exports = async function generateDocFromSchema(
   homepageLocation,
   diffMethod,
   tmpDir,
+  homepageURL,
 ) {
+  console.info(
+    chalk.blue(`Trying to fetch schema from "${schemaLocation}".`),
+  );
   return Promise.resolve(
     loadSchema(schemaLocation, {
       loaders: [new GraphQLFileLoader(), new UrlLoader(), new JsonFileLoader()],
@@ -37,6 +41,7 @@ module.exports = async function generateDocFromSchema(
         new Printer(schema, baseURL, linkRoot),
         outputDir,
         baseURL,
+        homepageURL,
       );
       const rootTypes = getSchemaMap(schema);
       Promise.all(
