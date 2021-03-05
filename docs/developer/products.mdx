@@ -395,6 +395,65 @@ The tax equals 1.15 which is 23% of the net price. Gross price is the sum of net
 Note: The `address` parameter is optional. If it's not provided, Saleor will use the default country code configured in the backend settings (see [DEFAULT_COUNTRY](running-saleor/configuration.mdx#default_country)).
 :::
 
+## Stock availability
+
+Stock availability of products is defined for each variant and warehouse (see [Warehouses](/dashboard/configuration/warehouses.mdx) and [Checking inventory](/dashboard/catalog/products.md#checking-inventory) sections to see how to configure it in the Dashboard). There are two fields that allows you to fetch the stock information in the public API.
+
+To fetch the stock availability, use the `Product.isAvailable` field:
+
+```graphql {4}
+{
+  product(id: "UHJvZHVjdDo3Mg==", channel: "default-channel") {
+    name
+    isAvailable(address: { country: US })
+  }
+}
+```
+
+Result:
+
+```json
+{
+  "data": {
+    "product": {
+      "name": "Apple Juice",
+      "isAvailable": true
+    }
+  }
+}
+```
+
+The `address` parameter is used to check the quantity in a warehouse that is connected with a shipping zone that includes the given address. If not provided, Saleor will use a warehouse with the highest available quantity.
+
+The `isAvailable` field is `True` when:
+- there is at least one variant for which the stock quantity minus the allocated quantity is above zero (in a warehouse matched for the given address)
+- the product is published in the given channel and available for purchase (see [Make your product available](/dashboard/catalog/products.md#step-5-make-your-product-available) section in the Dashboard docs)
+
+To fetch the exact available quantity, use the `ProductVariant.quantityAvailable` field:
+
+```graphql {3}
+{
+  productVariant(id: "UHJvZHVjdFZhcmlhbnQ6MjAz", channel: "default-channel") {
+    quantityAvailable(address: { country: US })
+  }
+}
+
+```
+
+Response:
+
+```json
+{
+  "data": {
+    "productVariant": {
+      "quantityAvailable": 30
+    }
+  }
+}
+```
+
+The `address` parameter behaves in the same way as in the `Product.isAvailable` fields above.
+
 ## Images
 
 The `Product` type contains two fields that refer to its images:
