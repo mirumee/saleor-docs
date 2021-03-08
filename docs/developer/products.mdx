@@ -392,7 +392,7 @@ Result:
 The tax equals 1.15 which is 23% of the net price. Gross price is the sum of net price and the tax.
 
 :::note
-Note: The `address` parameter is optional. If it's not provided, Saleor will use the default country code configured in the backend settings (see [DEFAULT_COUNTRY](running-saleor/configuration.mdx#default_country)).
+The `address` parameter is optional. If it's not provided, Saleor will use the default country code configured in the backend settings (see [DEFAULT_COUNTRY](running-saleor/configuration.mdx#default_country)).
 :::
 
 ## Stock availability
@@ -429,7 +429,7 @@ The `isAvailable` field is `True` when:
 - there is at least one variant for which the stock quantity minus the allocated quantity is above zero (in a warehouse matched for the given address)
 - the product is published in the given channel and available for purchase (see [Make your product available](/dashboard/catalog/products.md#step-5-make-your-product-available) section in the Dashboard docs)
 
-To fetch the exact available quantity, use the `ProductVariant.quantityAvailable` field:
+To fetch the available quantity, use the `ProductVariant.quantityAvailable` field:
 
 ```graphql {3}
 {
@@ -453,6 +453,10 @@ Response:
 ```
 
 The `address` parameter behaves in the same way as in the `Product.isAvailable` fields above.
+
+:::note
+To avoid leaking precise stock information, the `quantityAvailable` field will not be greater than the maximum orderable threshold configured in the [MAX_CHECKOUT_LINE_QUANTITY](developer/running-saleor/configuration.mdx#max_checkout_line_quantity) server setting.
+:::
 
 ## Images
 
